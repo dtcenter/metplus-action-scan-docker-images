@@ -23,7 +23,7 @@ inputs:
   log-artifact-name:
     description: 'Name for the uploaded log artifact'
     required: false
-    default: 'logs'
+    default: 'security-scan-logs'
 
 runs:
   using: 'composite'
