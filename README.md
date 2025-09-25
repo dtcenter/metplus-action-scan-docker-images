@@ -17,11 +17,16 @@ This composite action:
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
 | `images` | JSON array of Docker images to scan (e.g., `["image1:tag", "image2:tag"]`) | Yes | - |
-| `continue-on-error` | Whether to continue on scan errors | No | `true` |
 | `fail-on-critical` | Whether to fail the action if any Critical CVEs are found | No | `false` |
 | `fail-on-high` | Whether to fail the action if any High CVEs are found | No | `false` |
 | `upload-logs` | Whether to upload scan logs as artifacts | No | `true` |
 | `log-artifact-name` | Name for the uploaded log artifact | No | `logs` |
+
+## Outputs
+
+| Output | Description |
+|--------|-------------|
+| `scan-status` | Status of the security scan: 0=success, 1=CVE threshold exceeded, 2=scan failure |
 
 ## Examples
 
@@ -43,10 +48,12 @@ This example shows the minimum required configuration, scanning a single Docker 
 
 ### Fail on Critical CVEs
 
-This example configures the action to fail if any Critical CVEs are found:
+This example configures the action to fail if any Critical CVEs are found and access the failure status:
 
 ```yaml
 - name: Scan Docker Images
+  id: security-scan
+  continue-on-error: true
   uses: dtcenter/metplus-action-scan-docker-images@v1
   with:
     images: |
@@ -57,6 +64,11 @@ This example configures the action to fail if any Critical CVEs are found:
       ]
     fail-on-critical: "true"
     fail-on-high: "false"
+
+- name: Check scan status
+  run: |
+    echo "Scan status: ${{ steps.security-scan.outputs.scan-status }}"
+    exit ${{ steps.security-scan.outputs.scan-status }}
 ```
 
 ## Output
@@ -66,6 +78,10 @@ The action will:
 - Show detailed information about Critical and High CVEs when found
 - Upload scan logs as GitHub Actions artifacts (if requested)
 - Fail the workflow if configured severity thresholds are exceeded (if requested)
+- Output a status code indicating the scan status:
+  - 0=success
+  - 1=CVE threshold exceeded
+  - 2=scan failure
 
 ## Usage in Workflow
 

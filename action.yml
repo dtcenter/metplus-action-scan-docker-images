@@ -4,10 +4,6 @@ inputs:
   images:
     description: 'JSON array of Docker images to scan (e.g., ["image1:tag", "image2:tag"])'
     required: true
-  continue-on-error:
-    description: 'Whether to continue on scan errors'
-    required: false
-    default: 'true'
   fail-on-critical:
     description: 'Whether to fail the action if any Critical CVEs are found'
     required: false
@@ -24,6 +20,11 @@ inputs:
     description: 'Name for the uploaded log artifact'
     required: false
     default: 'security-scan-logs'
+
+outputs:
+  scan-status:
+    description: 'Status of the security scan: 0=success, 1=CVE threshold exceeded, 2=scan failure'
+    value: ${{ steps.scan.outputs.exit-code }}
 
 runs:
   using: 'composite'
@@ -44,8 +45,8 @@ runs:
         mkdir -p ${RUNNER_WORKSPACE}/security-scan-logs
 
     - name: Scan Docker Images
+      id: scan
       shell: bash
-      continue-on-error: ${{ inputs.continue-on-error == 'true' }}
       run: |
         # Parse the JSON array of images
         images='${{ inputs.images }}'
@@ -70,15 +71,15 @@ runs:
           echo "Scanning image $image"
           echo "Logging to $log_file"
           
-          # Run grype scan
-          if grype $image > "$log_file" 2>&1; then
-            scan_result=0
-          else
-            scan_result=1
+          # Run grype scan, return 2 if scan fails to run successfully
+          if ! grype $image > "$log_file" 2>&1; then
+            echo "ERROR: grype failed to scan image $image"
+            echo "::endgroup::"
+            return 2
           fi
           
           # Print CVE counts
-          local should_fail=0
+          local cve_fail=0
           if [ -f "$log_file" ]; then
             cve_count=$(grep -E " Critical | High | Medium | Low | Negligible " "$log_file" | wc -l || echo "0")
             cve_summary="Found $cve_count CVEs for image $image: "
@@ -102,7 +103,7 @@ runs:
               
               if [ "$fail_on_critical" == "true" ]; then
                 echo "::error::Action configured to fail on Critical CVEs"
-                should_fail=1
+                cve_fail=1
               fi
             fi
             
@@ -116,36 +117,57 @@ runs:
                 echo "High CVEs found in $log_file:"
                 grep -E "SEVERITY|High" "$log_file" || true
                 echo ""
-                should_fail=1
+                cve_fail=1
               fi
             fi
           fi
           
           echo "::endgroup::"
           
-          # Return failure if we should fail or if the scan itself failed
-          if [ $should_fail -eq 1 ] || [ $scan_result -ne 0 ]; then
-            return 1
-          fi
-          
-          return 0
+          # Return appropriate exit code:
+          # 0 = success
+          # 1 = CVE threshold exceeded
+          # 2 = scan failure
+          return $cve_fail
         }
-        
+
         # Parse JSON array and scan each image
         overall_exit_code=0
         echo "$images" | jq -r '.[]' | while read -r image; do
           if [ -n "$image" ]; then
-            if ! scan_image "$image"; then
-              overall_exit_code=1
+            scan_image "$image"
+            exit_code=$?
+
+            # Keep the highest exit code (2 > 1 > 0)
+            if [ $exit_code -gt $overall_exit_code ]; then
+              overall_exit_code=$exit_code
             fi
+            echo $overall_exit_code > /tmp/scan_exit_code
           fi
         done
-        
-        # Handle the exit code properly in the subshell
+
+        # Read the final exit code from temp file (due to subshell)
+        if [ -f /tmp/scan_exit_code ]; then
+          overall_exit_code=$(cat /tmp/scan_exit_code)
+          rm -f /tmp/scan_exit_code
+        else
+          echo "ERROR: No scans were run"
+          overall_exit_code=2
+        fi
+
+        # Set output for the step
+        echo "exit-code=$overall_exit_code" >> $GITHUB_OUTPUT
+
+        echo "Scan completed with exit code: $overall_exit_code"
+
+        # output error if anything failed
         if [ $overall_exit_code -ne 0 ]; then
           echo "::error::One or more security scans failed or found vulnerabilities that exceed the configured thresholds"
-          exit 1
         fi
+
+        # Always exit with 0 here so we can upload logs and check status later
+        exit 0
+
 
     - name: Upload scan logs
       if: always() && inputs.upload-logs == 'true'
@@ -154,3 +176,27 @@ runs:
         name: ${{ inputs.log-artifact-name }}
         path: ${{ runner.workspace }}/security-scan-logs
         if-no-files-found: ignore
+
+    - name: Check scan results
+      shell: bash
+      run: |
+        exit_code="${{ steps.scan.outputs.exit-code }}"
+        echo "Security scan exit code: $exit_code"
+
+        case $exit_code in
+          0)
+            echo "✅ Security scan completed successfully"
+            ;;
+          1)
+            echo "::error::❌ Security scan found vulnerabilities that exceed the configured thresholds"
+            exit 1
+            ;;
+          2)
+            echo "::error::❌ Security scan failed to run properly"
+            exit 1
+            ;;
+          *)
+            echo "::error::❌ Security scan completed with unexpected exit code: $exit_code"
+            exit 1
+            ;;
+        esac
