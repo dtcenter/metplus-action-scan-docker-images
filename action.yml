@@ -81,20 +81,20 @@ runs:
           # Print CVE counts
           local cve_fail=0
           if [ -f "$log_file" ]; then
-            cve_count=$(grep -E " Critical | High | Medium | Low | Negligible " "$log_file" | wc -l || echo "0")
+            cve_count=$(grep -E " Critical | High | Medium | Low | Negligible " "$log_file" | wc -l | tr -d '[:space:]')
             cve_summary="Found $cve_count CVEs for image $image: "
             
             for status in Critical High Medium Low Negligible; do
               if [[ $status != "Critical" ]]; then
                 cve_summary+=", " 
               fi
-              count=$(grep " $status " "$log_file" | wc -l || echo "0")
+              count=$(grep " $status " "$log_file" | wc -l | tr -d '[:space:]')
               cve_summary+="$count ${status}"
             done
             echo "$cve_summary"
             
             # Check for critical CVEs
-            critical_count=$(grep " Critical " "$log_file" | wc -l)
+            critical_count=$(grep " Critical " "$log_file" | wc -l | tr -d '[:space:]')
             if [ "$critical_count" -gt 0 ]; then
               echo "::warning::Found $critical_count Critical CVEs for image $image"
               echo "Critical CVEs found in $log_file:"
@@ -108,7 +108,7 @@ runs:
             fi
             
             # Check for high CVEs
-            high_count=$(grep " High " "$log_file" | wc -l)
+            high_count=$(grep " High " "$log_file" | wc -l | tr -d '[:space:]')
             if [ "$high_count" -gt 0 ]; then
               echo "::warning::Found $high_count High CVEs for image $image"
               
