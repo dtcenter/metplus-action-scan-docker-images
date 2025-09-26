@@ -101,7 +101,7 @@ runs:
                 echo "::error::$log_text"
                 echo "Action configured to fail on Critical CVEs"
                 cve_fail=1
-              else:
+              else
                 echo "::warning::$log_text"
               fi
               echo "Critical CVEs found in $log_file:"
@@ -117,7 +117,7 @@ runs:
                 echo "::error::$log_text"
                 echo "Action configured to fail on High CVEs"
                 cve_fail=1
-              else:
+              else
                 echo "::warning::$log_text"
               fi
               echo "High CVEs found in $log_file:"
