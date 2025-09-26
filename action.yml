@@ -94,7 +94,7 @@ runs:
             echo "$cve_summary"
             
             # Check for critical CVEs
-            critical_count=$(grep " Critical " "$log_file" | wc -l || echo "0")
+            critical_count=$(grep " Critical " "$log_file" | wc -l)
             if [ "$critical_count" -gt 0 ]; then
               echo "::warning::Found $critical_count Critical CVEs for image $image"
               echo "Critical CVEs found in $log_file:"
@@ -108,7 +108,7 @@ runs:
             fi
             
             # Check for high CVEs
-            high_count=$(grep " High " "$log_file" | wc -l || echo "0")
+            high_count=$(grep " High " "$log_file" | wc -l)
             if [ "$high_count" -gt 0 ]; then
               echo "::warning::Found $high_count High CVEs for image $image"
               
