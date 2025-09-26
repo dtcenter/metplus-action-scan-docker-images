@@ -133,24 +133,23 @@ runs:
 
         # Parse JSON array and scan each image
         overall_exit_code=0
-        echo "$images" | jq -r '.[]' | while read -r image; do
+        scans_run=0
+        readarray -t image_list < <(echo "$images" | jq -r '.[]')
+
+        for image in "${image_list[@]}"; do
           if [ -n "$image" ]; then
             scan_image "$image"
             exit_code=$?
+            scans_run=1
 
             # Keep the highest exit code (2 > 1 > 0)
             if [ $exit_code -gt $overall_exit_code ]; then
               overall_exit_code=$exit_code
             fi
-            echo $overall_exit_code > /tmp/scan_exit_code
           fi
         done
 
-        # Read the final exit code from temp file (due to subshell)
-        if [ -f /tmp/scan_exit_code ]; then
-          overall_exit_code=$(cat /tmp/scan_exit_code)
-          rm -f /tmp/scan_exit_code
-        else
+        if [ $scans_run -eq 0 ]; then
           echo "ERROR: No scans were run"
           overall_exit_code=2
         fi
