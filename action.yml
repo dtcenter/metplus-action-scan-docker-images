@@ -102,7 +102,7 @@ runs:
               echo ""
               
               if [ "$fail_on_critical" == "true" ]; then
-                echo "::error::Action configured to fail on Critical CVEs"
+                echo "Action configured to fail on Critical CVEs"
                 cve_fail=1
               fi
             fi
@@ -116,7 +116,7 @@ runs:
               echo ""
               
               if [ "$fail_on_high" == "true" ]; then
-                echo "::error::Action configured to fail on High CVEs"
+                echo "Action configured to fail on High CVEs"
                 cve_fail=1
               fi
             fi
@@ -161,7 +161,7 @@ runs:
 
         # output error if anything failed
         if [ $overall_exit_code -ne 0 ]; then
-          echo "::error::One or more security scans failed or found vulnerabilities that exceed the configured thresholds"
+          echo "ERROR: One or more security scans failed or found vulnerabilities that exceed the configured thresholds"
         fi
 
         # Always exit with 0 here so we can upload logs and check status later
