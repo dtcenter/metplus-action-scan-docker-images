@@ -111,12 +111,12 @@ runs:
             high_count=$(grep -c " High " "$log_file" || true)
             if [ "$high_count" -gt 0 ]; then
               echo "::warning::Found $high_count High CVEs for image $image"
+              echo "High CVEs found in $log_file:"
+              grep -E "SEVERITY|High" "$log_file" || true
+              echo ""
               
               if [ "$fail_on_high" == "true" ]; then
                 echo "::error::Action configured to fail on High CVEs"
-                echo "High CVEs found in $log_file:"
-                grep -E "SEVERITY|High" "$log_file" || true
-                echo ""
                 cve_fail=1
               fi
             fi
@@ -138,8 +138,8 @@ runs:
 
         for image in "${image_list[@]}"; do
           if [ -n "$image" ]; then
-            scan_image "$image"
-            exit_code=$?
+            exit_code=0
+            scan_image "$image" || exit_code=$?
             scans_run=1
 
             # Keep the highest exit code (2 > 1 > 0)
