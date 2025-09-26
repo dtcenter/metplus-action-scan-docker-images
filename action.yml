@@ -96,29 +96,33 @@ runs:
             # Check for critical CVEs
             critical_count=$(grep -c " Critical " "$log_file" || true)
             if [ "$critical_count" -gt 0 ]; then
-              echo "::warning::Found $critical_count Critical CVEs for image $image"
+              log_text="Found $critical_count Critical CVEs for image $image"
+              if [ "$fail_on_critical" == "true" ]; then
+                echo "::error::$log_text"
+                echo "Action configured to fail on Critical CVEs"
+                cve_fail=1
+              else:
+                echo "::warning::$log_text"
+              fi
               echo "Critical CVEs found in $log_file:"
               grep -E "SEVERITY|Critical" "$log_file" || true
               echo ""
-              
-              if [ "$fail_on_critical" == "true" ]; then
-                echo "Action configured to fail on Critical CVEs"
-                cve_fail=1
-              fi
             fi
-            
+
             # Check for high CVEs
             high_count=$(grep -c " High " "$log_file" || true)
             if [ "$high_count" -gt 0 ]; then
-              echo "::warning::Found $high_count High CVEs for image $image"
+              log_text="Found $high_count High CVEs for image $image"
+              if [ "$fail_on_high" == "true" ]; then
+                echo "::error::$log_text"
+                echo "Action configured to fail on High CVEs"
+                cve_fail=1
+              else:
+                echo "::warning::$log_text"
+              fi
               echo "High CVEs found in $log_file:"
               grep -E "SEVERITY|High" "$log_file" || true
               echo ""
-              
-              if [ "$fail_on_high" == "true" ]; then
-                echo "Action configured to fail on High CVEs"
-                cve_fail=1
-              fi
             fi
           fi
           
