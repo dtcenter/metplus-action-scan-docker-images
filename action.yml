@@ -39,6 +39,10 @@ runs:
       run: |
         curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 
+    - name: Update Grype Database
+      shell: bash
+      run: grype db update
+
     - name: Create logs directory
       shell: bash
       run: |
