@@ -3,6 +3,16 @@
 A GitHub Action that installs Syft and Grype, then scans Docker images for security vulnerabilities.
 This action provides flexible configuration options for failing builds based on vulnerability severity levels.
 
+## Version History
+
+### v2
+
+Updated `actions/upload-artifact` version from v4 to v7 to resolve Node.js 20 deprecation
+
+### v1
+
+Initial version
+
 ## Description
 
 This composite action:
