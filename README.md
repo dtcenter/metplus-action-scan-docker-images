@@ -7,9 +7,13 @@ This action provides flexible configuration options for failing builds based on 
 
 ### v2
 
+2026-03-17
+
 Updated `actions/upload-artifact` version from v4 to v7 to resolve Node.js 20 deprecation
 
 ### v1
+
+2025-10-01
 
 Initial version
 
